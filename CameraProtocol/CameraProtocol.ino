@@ -1,3 +1,25 @@
+/*
+
+As of 6/28/14, this can be considered abandoned. Despite my best
+efforts, this camera simply refuses to go at any speed higher than
+38400 baud. 
+
+Completely recoding the library (this here) allows
+for taking an image (albeit with considerable caveats: automatically
+caches the image and will no release it, occasionally currupts the
+file, etc), but breaks the moment the baud change occurs. 
+
+Modifying the Adafruit library also causes issues, though I am
+not sufficient enough at C++ to fully understand why. Adding the
+needed functions does nothing noticeable, other than breaking it.
+
+If you are here trying to speed up the VC0706 TTL Camera, I would
+advise against it. Not going to happen any time soon.
+
+~Coded by Robert Davis
+
+*/
+
 #include <SoftwareSerial.h>
 
 SoftwareSerial camSerial = SoftwareSerial(2,3);
@@ -13,8 +35,8 @@ SoftwareSerial camSerial = SoftwareSerial(2,3);
 #define FOUR 0x04
 #define FIVE 0x05
 #define NINETEEN 0x19
-#define MAX_BAUD1 0x2A
-#define MAX_BAUD2 0xC8
+#define MAX_BAUD1 0x0D
+#define MAX_BAUD2 0xA6
 #define TEST 0x0F
 //Commands
 #define RESET 0x26
@@ -59,12 +81,12 @@ void setup()
   sendReset();
   clearBytes();
   
-  //setBaud();
+  setBaud();
   //clearBytes();
   
-  //camSerial.end();
-  //camSerial.begin(115200);
-  
+  camSerial.end();
+  camSerial.begin(115200);
+  clearBytes();
   //setImageSize();
   //clearBytes();
   
@@ -73,15 +95,16 @@ void setup()
 
 void loop()
 {
-  //if (Serial.read() == START)
-  //{
+  if (Serial.read() == START)
+  //if (1)
+  {
     //Serial.println("Toggling frame select");
-    toggleImage(ONE);
+    toggleImage((byte)ZERO);
     //Serial.println("Clearing bytes");
     clearBytes();
     //Serial.println("Saving image length");
-    unsigned short jpgLen = readImageSize();
-    Serial.println(jpgLen);
+    unsigned long jpgLen = readImageSize();
+    //Serial.println(jpgLen);
     while (jpgLen > 0)
     {
       //Serial.println("Sending data");
@@ -92,7 +115,9 @@ void loop()
       jpgLen -= bytesToRead;
     }
     toggleImage(TWO);
-  //}
+    sendReset();
+    clearBytes();
+  }
 }
 
 void clearBytes()
@@ -106,13 +131,7 @@ void clearBytes()
 }
 
 void sendReset()
-{
-  /*
-  camSerial.write(CAM);
-  camSerial.write((byte)ZERO);
-  camSerial.write(RESET);
-  camSerial.write((byte)ZERO); */
-  
+{ 
   byte byteData[] = {CAM, (byte)ZERO, RESET, (byte)ZERO};
   camSerial.write(byteData, 4);
   delay(10);
@@ -121,14 +140,7 @@ void sendReset()
 void toggleImage(byte toggle)
 {
   frameptr = 0;
-  /*
-  camSerial.write(CAM);
-  camSerial.write((byte)ZERO);
-  camSerial.write(TOGGLE_PICTURE);
-  camSerial.write(toggle);
-  camSerial.write((byte)ZERO);
-  */
-  byte byteData[] = {CAM, (byte)ZERO, TOGGLE_PICTURE, toggle, (byte)ZERO};
+  byte byteData[] = {CAM, (byte)ZERO, TOGGLE_PICTURE, ONE, toggle};
   camSerial.write(byteData, 5);
 }
 
@@ -156,37 +168,10 @@ unsigned long readImageSize()
   return imageSize.sizebytes;
 }
 
-void resumeImage()
-{
-  camSerial.write(CAM);
-  camSerial.write((byte)ZERO);
-  camSerial.write(TOGGLE_PICTURE);
-  camSerial.write(ONE);
-  camSerial.write(THREE);
-}
-
-void setImageSize()
-{
-  camSerial.write(CAM);
-  camSerial.write((byte)ZERO);
-  camSerial.write(SET_DIMENSIONS);
-  camSerial.write(FIVE);
-  camSerial.write(FOUR);
-  camSerial.write(ONE);
-  camSerial.write((byte)ZERO);
-  camSerial.write(NINETEEN);
-  camSerial.write((byte)ZERO);
-}
-
 void setBaud()
 {
-  camSerial.write(CAM);
-  camSerial.write((byte)ZERO);
-  camSerial.write(SET_BAUD);
-  camSerial.write(THREE);
-  camSerial.write(ONE);
-  camSerial.write(MAX_BAUD1);
-  camSerial.write(MAX_BAUD2);
+  byte byteData[] = {CAM, (byte)ZERO, SET_BAUD, THREE, ONE, MAX_BAUD1, MAX_BAUD2};
+  camSerial.write(byteData, 7);
 }
 
 byte* readImage(byte bytesToRead)
@@ -215,7 +200,7 @@ byte* readImage(byte bytesToRead)
   int avail;
   int stripCount = 0;
   
-  while ((timeout != counter) && (bufferLen != bytesToRead+5))
+  while ((timeout != counter) && (bufferLen != (bytesToRead+5)))
   {
     avail = camSerial.available();
     if (avail <= 0)
@@ -232,6 +217,7 @@ byte* readImage(byte bytesToRead)
     {
       counter = 0;
       cameraBuff[bufferLen++] = camSerial.read();
+      //Serial.println(bufferLen); //tester
     }
   }
   frameptr += bytesToRead;

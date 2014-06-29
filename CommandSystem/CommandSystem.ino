@@ -1,8 +1,8 @@
 #include <Adafruit_VC0706.h>
 #include <SoftwareSerial.h>
 
-//SoftwareSerial cameraConnection = SoftwareSerial(2,3);
-//Adafruit_VC0706 cam = Adafruit_VC0706(&cameraConnection);
+SoftwareSerial cameraConnection = SoftwareSerial(2,3);
+Adafruit_VC0706 cam = Adafruit_VC0706(&cameraConnection);
 
 
 #define STOP 0x99
@@ -24,15 +24,14 @@ boolean trip = false;
 void setup()
 {
   Serial.begin(57600);
-  /*
+  
   if(cam.begin()){}
   else 
   {
     Serial.write(CAMERA_ERROR); //Abort if the camera doesn't intialize
     return;
   }
-  cam.setImageSize(VC0706_640x480);
-  */
+  
   pinMode(m1DirPin, OUTPUT);
   pinMode(m1StepPin, OUTPUT);
   pinMode(m2DirPin, OUTPUT);
@@ -47,7 +46,7 @@ void loop()
 }
 void readCommand()
 {
-  byte commands[25];
+  byte commands[100];
   int count = 0;
   while(Serial.available() > 0)
   {
@@ -55,7 +54,7 @@ void readCommand()
     count++;
     delay(100);
   }
-  for(int i = 0; i < 25; i++)
+  for(int i = 0; i < 100; i++)
   { 
     if(commands[i] == FORWARD)
     {
@@ -80,7 +79,13 @@ void readCommand()
   }
   if (!trip)
   {
-    //takePhoto();
+    
+    for (int i = 0; i < 100; i++)
+    {
+      Serial.println(commands[i]);
+      commands[i] = 0;
+    } 
+    takePhoto();
   }
   else
   {
@@ -131,7 +136,7 @@ void turn(int direction)
     delay(1);
   }
 }
-/*
+
 void takePhoto()
 {
   cam.takePicture();
@@ -145,6 +150,6 @@ void takePhoto()
     Serial.write(buffer, bytesToRead);
     jpgLen -= bytesToRead;
   }
-  cam.reset();
+  cam.resumeVideo();
 }
-*/
+

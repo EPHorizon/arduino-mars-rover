@@ -4,7 +4,7 @@ import serial
 class Console(Frame):
 
     def __init__(self):
-        self.port = serial.Serial("COM12", 57600)
+        self.port = serial.Serial("COM4", 57600)
         
         self.commands = []
         Frame.__init__(self)
