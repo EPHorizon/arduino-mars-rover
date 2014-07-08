@@ -12,12 +12,14 @@ Adafruit_VC0706 cam = Adafruit_VC0706(&cameraConnection);
 #define LEFT 0x08
 
 #define CAMERA_ERROR 0x98 //todo: decide hex commands
-
+#define PHOTO_READY 0x97
+#define STOP_EXECUTED 0x90
 
 const int m1DirPin = 4;
 const int m1StepPin = 5;
 const int m2DirPin = 7;
 const int m2StepPin = 6;
+const int ledPin = 9;
 
 boolean trip = false;
 
@@ -31,7 +33,7 @@ void setup()
     Serial.write(CAMERA_ERROR); //Abort if the camera doesn't intialize
     return;
   }
-  
+  pinMode(ledPin, OUTPUT);
   pinMode(m1DirPin, OUTPUT);
   pinMode(m1StepPin, OUTPUT);
   pinMode(m2DirPin, OUTPUT);
@@ -46,15 +48,20 @@ void loop()
 }
 void readCommand()
 {
-  byte commands[100];
+  byte commands[50]; //arbirary limit
   int count = 0;
-  while(Serial.available() > 0)
+  
+  for (int i = 0; i < 50; i++) //initialize the array/clean it
+  {
+    commands[i] = 0;
+  }
+  while(Serial.available())
   {
     commands[count] = Serial.read();
     count++;
     delay(100);
   }
-  for(int i = 0; i < 100; i++)
+  for(int i = 0; i < 50; i++)
   { 
     if(commands[i] == FORWARD)
     {
@@ -74,24 +81,18 @@ void readCommand()
     }
     if (trip)
     {
+      Serial.write(STOP_EXECUTED);
       break;
     }
   }
   if (!trip)
   {
-    
-    for (int i = 0; i < 100; i++)
-    {
-      Serial.println(commands[i]);
-      commands[i] = 0;
-    } 
+    Serial.write(PHOTO_READY);
     takePhoto();
   }
   else
   {
-    drive(LOW);
     trip = false;
-    
   }
   
 }
@@ -100,7 +101,7 @@ void drive(int direction)
   delayMicroseconds(2);
   digitalWrite(m1DirPin, direction);
   digitalWrite(m2DirPin, direction);
-  for(int j = 0; j < 3200; j++) //todo: determine distance preset
+  for(int j = 0; j < 1600; j++) //todo: determine distance preset
   {
     if (Serial.read() == STOP)
     {
@@ -121,7 +122,7 @@ void turn(int direction)
   delayMicroseconds(2);
   digitalWrite(m1DirPin, direction);
   digitalWrite(m2DirPin, !direction);
-  for(int j = 0; j < 1600; j++) //todo: determine turn degrees
+  for(int j = 0; j < 425; j++) //todo: determine turn degrees
   {
     if (Serial.read() == STOP)
     {
@@ -139,6 +140,8 @@ void turn(int direction)
 
 void takePhoto()
 {
+  digitalWrite(ledPin, HIGH);
+  delay(500);
   cam.takePicture();
   unsigned int jpgLen = cam.frameLength();
   
@@ -150,6 +153,7 @@ void takePhoto()
     Serial.write(buffer, bytesToRead);
     jpgLen -= bytesToRead;
   }
+  digitalWrite(ledPin, LOW);
   cam.resumeVideo();
 }
 

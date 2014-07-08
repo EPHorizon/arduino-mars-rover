@@ -1,10 +1,12 @@
 from tkinter import *
-import serial
-
+import serial, time
+from PIL import Image, ImageTk
+import threading
+CAMERA = True
 class Console(Frame):
 
     def __init__(self):
-        self.port = serial.Serial("COM4", 57600)
+        self.port = serial.Serial("COM12", 57600)
         
         self.commands = []
         Frame.__init__(self)
@@ -44,16 +46,16 @@ class Console(Frame):
 
     def _forward(self):
         self.commands.append(b"\x05")
-        self._viewVar.set("Forward 10 cm ")
+        self._viewVar.set("Forward 1 ft")
     def _backward(self):
         self.commands.append(b"\x06")
-        self._viewVar.set("Backward 10 cm ")
+        self._viewVar.set("Backward 1 ft")
     def _right(self):
         self.commands.append(b"\x07")
-        self._viewVar.set("Right 10 degrees")
+        self._viewVar.set("Right 45 degrees")
     def _left(self):
         self.commands.append(b"\x08")
-        self._viewVar.set("Left 10 degrees")
+        self._viewVar.set("Left 45 degrees")
     def _stop(self):
         self.port.write(b"\x99")
         self._viewVar.set("Aborting")
@@ -65,13 +67,55 @@ class Console(Frame):
             print(self.commands[i])
         self._viewVar.set("Commands sent")
         self.commands.clear()
+        if CAMERA:
+            self._imageWait()
+
     def _undo(self):
-        self._viewVar.set("Striking Last Entry")
-        self.commands.pop()
+        if len(self.commands) > 0:
+            self._viewVar.set("Striking Last Entry")
+            self.commands.pop()
     def _restart(self):
         self._viewVar.set("")
         self.commands.clear()
+    def _getImage(self):
+        print("displaying image")
+        image = Image.open("imageTest.jpg")
+        photo = ImageTk.PhotoImage(image)
 
+        top = Toplevel()
+        top.title("Collected Image")
+
+        label = Label(top, image = photo)
+        label.image = photo
+        label.grid()
+        
+    def _imageWait(self):
+        imageLoader = threading.Thread(target = self._imageReceiver)
+        imageLoader.start()
+
+    def _imageReceiver(self):
+        while True:
+            command = self.port.read()
+            if command == b"\x97":
+        
+                print("opening file")
+                file = open("imageTest.jpg", "wb")
+                time1 = time.time()
+                while True:
+                    if self.port.inWaiting():
+                        file.write(self.port.read())
+                        time1 = time.time()
+                    else:
+                        time2 = time.time()
+                        if (time2 - time1) > 1:
+                            print("file transfer complete")
+                            file.close()
+                            self._getImage()
+                            return
+            elif command == b"\x90":
+                return
+
+    
 def main():
     Console().mainloop()
 
