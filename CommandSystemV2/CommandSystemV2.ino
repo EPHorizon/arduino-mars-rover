@@ -174,3 +174,54 @@ void takePhoto()
   cam.resumeVideo();
 }
 */
+
+void randomize() 
+{
+  int choice = random(1,4);
+  byte distance = random(1,6);
+  
+  if (choice == 1)
+  {
+    for (int i = 1; i <= distance; i++)
+    {
+      drive(HIGH, 1);
+      if (Serial.read() == STOP)
+      {
+        recenter();
+      }
+    }
+  }
+  else if (choice == 2)
+  {
+    for (int i = 1; i <= distance; i++)
+    {
+      turn(RIGHT, 1);
+      if (Serial.read() == STOP)
+      {
+        recenter();
+      }
+    }
+  }
+  else if (choice == 3)
+  {
+    for (int i = 1; i <= distance; i++)
+    {
+      turn(LEFT, 1);
+      if (Serial.read() == STOP)
+      {
+        recenter();
+      }
+    }
+  }
+}
+void recenter()
+{
+  Serial.write(STOP_EXECUTED);
+  byte deg = Serial.read();
+  turn(LEFT, deg);
+  Serial.write(STOP_EXECUTED);
+  byte distance = Serial.read();
+  drive(FORWARD, distance);
+  Serial.write(STOP_EXECUTED);
+}
+  

@@ -1,6 +1,9 @@
 from PIL import Image
 import time
 import math
+import serial
+
+port = serial.Serial("COM12", 9600)
 
 def firstImage():
     print("--------------------1--------------------")
@@ -32,31 +35,11 @@ def firstImage():
                 if greenRatio > maxGreen:
                     maxGreen = greenRatio
                     greenLoc = [x,y]
-    print()
-    print("Red")
-    print("Maximum red ratio: ", maxRed)
-    print("At location: ", redLoc)
-    print("Pixel RGB levels: ", pixels[redLoc[0], redLoc[1]])
-    print()
-
-    print("Blue")
-    print("Maximum blue ratio: ", maxBlue)
-    print("At location: ", blueLoc)
-    print("Pixel RGB levels: ", pixels[blueLoc[0], blueLoc[1]])
-    print()
     
     global center
     center = [int((blueLoc[0] + redLoc[0])/2), int((blueLoc[1] + redLoc[1])/2)]
-    print("Center location: ", center)
-
-    end = time.time() - start
-    print()
-    print("Calculation took", end, "Seconds")
-    print()
-    
     return center
 
-start = time.time()
 firstImage()
 
 
@@ -91,34 +74,18 @@ def getCenter(ct, image):
                 if greenRatio > maxGreen:
                     maxGreen = greenRatio
                     greenLoc = [x,y]
-                    
-    print("--------------------%i--------------------" %image)
-    print()
-    print("Red")
-    print("Maximum red ratio: ", maxRed)
-    print("At location: ", redLoc)
-    print("Pixel RGB levels: ", pixels[redLoc[0], redLoc[1]])
-    print()
-
-    print("Blue")
-    print()
-
-    print("Maximum blue ratio: ", maxBlue)
-    print("At location: ", blueLoc)
-    print("Pixel RGB levels: ", pixels[blueLoc[0], blueLoc[1]])
-    print()
     global center
     center = [int((blueLoc[0] + redLoc[0])/2), int((blueLoc[1] + redLoc[1])/2)]
-    print("Center location: ", center)
-    end = time.time() - start
-    print()
-    print("Calculation took", end, "Seconds")
+    
     boundary = Image.open(r"C:\Users\Robert Davis\Desktop\boundTest5.png")
-    bound = boundary.load()
+    bound = boundary.load() #todo: draw actual boundary case
     if bound[center[0], center[1]] == (255, 255, 255, 255):
-        print("Out of Bounds!")
-    else:
-        print("All good")
+        print("Out of Bounds!") #todo: add rover command here
+        port.write(b"\x36")
+        while port.read() != b"\x52":
+            pass
+
+        
     return center
 
 def direction(initial, final):
@@ -134,7 +101,7 @@ def direction(initial, final):
         return "W"
     if angle <= 7*math.pi/4 and angle >= 5*math.pi/4:
         return "S"
-def getYellow(ct, image):
+def getYellow(ct, image):  #todo: once a green led is added, change to that
     img = Image.open(r"C:\Users\Robert Davis\Pictures\Rover Files\navPics\%i.jpg" %image)
     pixels = img.load()
 
@@ -160,5 +127,6 @@ for i in range(19):
 ##end = getCenter(center, 9)
 ##print(direction(start1, getYellow(center, 8)))
 ##print(getYellow(center, 8))
+
 
 
