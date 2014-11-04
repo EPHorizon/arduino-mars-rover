@@ -48,6 +48,7 @@ void setup()
 }
 void loop()
 {  
+  /*
   if(Serial.available())
   {
     digitalWrite(sleepLeftPin, HIGH);
@@ -56,6 +57,8 @@ void loop()
     digitalWrite(sleepLeftPin, LOW);
     digitalWrite(sleepRightPin, LOW);
   }
+  */
+  randomize();
 }
 void readCommand()
 {
@@ -179,7 +182,8 @@ void randomize()
 {
   int choice = random(1,4);
   byte distance = random(1,6);
-  
+  digitalWrite(sleepLeftPin, HIGH);
+  digitalWrite(sleepRightPin, HIGH);
   if (choice == 1)
   {
     for (int i = 1; i <= distance; i++)
@@ -193,9 +197,9 @@ void randomize()
   }
   else if (choice == 2)
   {
-    for (int i = 1; i <= distance; i++)
+    for (int i = 1; i <= distance*2; i++)
     {
-      turn(RIGHT, 1);
+      turn(HIGH, 1);
       if (Serial.read() == STOP)
       {
         recenter();
@@ -204,9 +208,9 @@ void randomize()
   }
   else if (choice == 3)
   {
-    for (int i = 1; i <= distance; i++)
+    for (int i = 1; i <= distance*2; i++)
     {
-      turn(LEFT, 1);
+      turn(LOW, 1);
       if (Serial.read() == STOP)
       {
         recenter();
@@ -216,6 +220,7 @@ void randomize()
 }
 void recenter()
 {
+  while (1);
   Serial.write(STOP_EXECUTED);
   byte deg = Serial.read();
   turn(LEFT, deg);

@@ -114,11 +114,9 @@ def getCenter(ct, image):
     print()
     print("Calculation took", end, "Seconds")
     boundary = Image.open(r"C:\Users\Robert Davis\Desktop\boundTest5.png")
-    bound = boundary.load()
+    bound = boundary.load() #todo: draw actual boundary case
     if bound[center[0], center[1]] == (255, 255, 255, 255):
-        print("Out of Bounds!")
-    else:
-        print("All good")
+        print("Out of Bounds!") #todo: add rover command here
     return center
 
 def direction(initial, final):
