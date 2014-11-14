@@ -38,6 +38,9 @@ void setup()
 void loop()
 {  
   randomize();
+  digitalWrite(sleepLeftPin, LOW);
+  digitalWrite(sleepRightPin, LOW);
+  delay(2000);
 }
 
 void drive(int direction, byte distance)
@@ -96,25 +99,32 @@ void randomize()
   digitalWrite(sleepRightPin, HIGH);
   if (choice == 1)
   {
-    drive(HIGH, distance);
+    drive(HIGH, distance*15);
   }
   else if (choice == 2)
   {
-    turn(HIGH, distance);
+    turn(HIGH, distance*15);
   }
   else if (choice == 3)
   {
-    turn(LOW, distance);   
+    turn(LOW, distance*15);   
   }
 }
 void recenter()
 {
   Serial.write(STOP_EXECUTED);
   while(!Serial.available());
-  byte deg = Serial.read();
-  turn(LEFT, deg);
-  Serial.write(STOP_EXECUTED);
-  while(!Serial.available());
+  for(int i = 1; i <5; i++)
+  {
+    byte dir = Serial.read();
+    Serial.write(STOP_EXECUTED);
+    while(!Serial.available());
+    byte deg = Serial.read();
+    turn(dir, deg);
+    Serial.write(STOP_EXECUTED);
+    while(!Serial.available());
+  }
+  
   byte distance = Serial.read();
   drive(FORWARD, distance);
   Serial.write(STOP_EXECUTED);

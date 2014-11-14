@@ -6,9 +6,16 @@ import serial
 port = serial.Serial("COM12", 57600)
 
 def firstImage():
-    print("--------------------1--------------------")
-    img = Image.open(r"C:\Users\Robert Davis\Pictures\Rover Files\navPics\1.jpg")
-    pixels = img.load()
+    while True:
+        
+        try:
+            img = Image.open(r"C:\Users\Robert Davis\Documents\GitHub\arduino-mars-rover\current.jpg")
+            pixels = img.load()
+            break
+        except:
+            pass
+        
+    
 
     redRatio = 0
     maxRed = 0
@@ -40,13 +47,18 @@ def firstImage():
     center = [int((blueLoc[0] + redLoc[0])/2), int((blueLoc[1] + redLoc[1])/2)]
     return center
 
-firstImage()
 
 
-def getCenter(ct, image):
-    img = Image.open(r"C:\Users\Robert Davis\Pictures\Rover Files\navPics\%i.jpg" %image)
+
+def getCenter(ct):
+    while True:
+        try:
+            img = Image.open(r"C:\Users\Robert Davis\Documents\GitHub\arduino-mars-rover\current.jpg")
+            pixels = img.load()
+            break
+        except:
+            pass
     
-    pixels = img.load()
     
     redRatio = 0
     maxRed = 0
@@ -77,22 +89,29 @@ def getCenter(ct, image):
     global center
     center = [int((blueLoc[0] + redLoc[0])/2), int((blueLoc[1] + redLoc[1])/2)]
     
-    boundary = Image.open(r"C:\Users\Robert Davis\Desktop\boundTest5.png")
+    boundary = Image.open(r"C:\Users\Robert Davis\Documents\GitHub\arduino-mars-rover\boundary.png")
     bound = boundary.load() #todo: draw actual boundary case
     if bound[center[0], center[1]] == (255, 255, 255, 255):
         print("Out of Bounds!")
         port.write(b"\x36")
-        #port.write(b"\x36")
         while port.read() != b"\x52":
             pass
         print("input 1 received")
-        deg = abs(int(direction(center, getYellow(center, image)) * (180/math.pi)))
-        print(deg)
-        port.write(deg.to_bytes(1, "big"))
-        while port.read() != b"\x52":
-            pass
+        for i in range(4):
+            data = direction([800, 600], getYellow(firstImage()))
+            direction0 = data[0]
+            port.write(direction0.to_bytes(1, "big"))
+            while port.read() != b"\x52":
+                pass
+            deg = int(data[1] * (180/math.pi))
+            print(deg)
+            port.write(deg.to_bytes(1, "big"))
+            while port.read() != b"\x52":
+                pass
+
+        
         print("input 2 received")
-        dist = int(math.sqrt(math.pow((center[0] - 800), 2) + math.pow((center[1] - 600), 2)) / 80)
+        dist = int(math.sqrt(math.pow((center[0] - 800), 2) + math.pow((center[1] - 600), 2)) / 5)
         print(dist)
         print(dist.to_bytes(1, "big"))
         #todo: need to find what the conversion from pixels to inches is
@@ -101,15 +120,27 @@ def getCenter(ct, image):
             pass
         print("input 3 received")
         #todo: maybe send this command to another function call
+        firstImage()
 
         
     return center
 
 def direction(initial, final):
+    angle = [0,0]
     x = final[0] - initial[0]
     y = -1*(final[1] - initial[1]) #negative is because the orgin starts upper
-    angle = math.atan2(y, x)       #lefthand corner, with y downwards
-    return angle    #This output depends on what they want
+    angle[1] = math.atan2(y, x)       #lefthand corner, with y downwards
+    
+    if angle[1] >= 0:
+        angle[0] = 1
+        print(angle)
+        return angle
+    else:
+        angle[0] = 0
+        angle[1] = abs(angle[1])
+        print(angle)
+        return angle    #This output depends on what they want
+
     if angle <= math.pi/4 or angle >= 7*math.pi/4:
         return "E"
     if angle <= 3*math.pi/4 and angle >= math.pi/4:
@@ -118,9 +149,14 @@ def direction(initial, final):
         return "W"
     if angle <= 7*math.pi/4 and angle >= 5*math.pi/4:
         return "S"
-def getYellow(ct, image):  #todo: once a green led is added, change to that
-    img = Image.open(r"C:\Users\Robert Davis\Pictures\Rover Files\navPics\%i.jpg" %image)
-    pixels = img.load()
+def getYellow(ct):  #todo: once a green led is added, change to that
+    while True:
+        try:
+            img = Image.open(r"C:\Users\Robert Davis\Documents\GitHub\arduino-mars-rover\current.jpg")
+            pixels = img.load()
+            break
+        except:
+            print("Error reading image file")
 
     yellowRatio = 0
     maxYellow = 0
@@ -136,14 +172,22 @@ def getYellow(ct, image):  #todo: once a green led is added, change to that
                     yellowLoc = [x,y]
     return yellowLoc
 
-for i in range(19):
-    start = time.time()
-    getCenter(center, i+2)
+##for i in range(19):
+##    start = time.time()
+##    getCenter(center, i+2)
 
 ##start1 = getCenter(center, 8)
 ##end = getCenter(center, 9)
 ##print(direction(start1, getYellow(center, 8)))
 ##print(getYellow(center, 8))
 
+def main():
+    while firstImage() == 0:
+        pass
+    while True:
+        if getCenter(center) == 0:
+            print("Error reading image file")
+        print(center)
+main()
 
 
