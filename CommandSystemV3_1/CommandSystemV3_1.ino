@@ -11,11 +11,13 @@ Adafruit_VC0706 cam = Adafruit_VC0706(&cameraConnection);
 #define LEFT 0x34
 #define TAKE_PICTURE 0x35
 #define STOP 0x36
+#define RANDOM 0x37
 
 //Sending commands//
 #define CAMERA_ERROR 0x50
 #define PHOTO_READY 0x51
 #define STOP_EXECUTED 0x52
+#define ACKNOWLEDGED 0x53
 
 const int m1DirPin = 4;
 const int m1StepPin = 5;
@@ -45,20 +47,19 @@ void setup()
   pinMode(m2StepPin, OUTPUT);
   pinMode(sleepLeftPin, OUTPUT);
   pinMode(sleepRightPin, OUTPUT);
+  Serial.write(ACKNOWLEDGED); //System is online
 }
 void loop()
 {  
-  /*
   if(Serial.available())
   {
     digitalWrite(sleepLeftPin, HIGH);
     digitalWrite(sleepRightPin, HIGH);
     readCommand();
+    Serial.write(ACKNOWLEDGED); // Command executed
     digitalWrite(sleepLeftPin, LOW);
     digitalWrite(sleepRightPin, LOW);
   }
-  */
-  randomize();
 }
 void readCommand()
 {
@@ -104,7 +105,6 @@ void readCommand()
     }
     if (trip)
     {
-      Serial.write(STOP_EXECUTED);
       trip = false;
       break;
     }
@@ -112,18 +112,19 @@ void readCommand()
 }
 void drive(int direction, byte distance)
 {
-  Serial.println(distance);
-  int dist = int(distance)*1600;
-  Serial.println(dist);
+  //Serial.println(distance);
+  int dist = int(distance)*203;
+  //Serial.println(dist);
   
   delayMicroseconds(2);
   digitalWrite(m1DirPin, direction);
   digitalWrite(m2DirPin, direction);
-  for(int j = 0; j < dist; j++) //todo: determine distance preset
+  for(int j = 0; j < dist; j++)
   {
     if (Serial.read() == STOP)
     {
       trip = true;
+      Serial.write(ACKNOWLEDGED);
       break;
     }
     digitalWrite(m1StepPin,LOW);
@@ -137,7 +138,7 @@ void drive(int direction, byte distance)
 
 void turn(int direction, byte degrees)
 {
-  int deg = int(degrees)*142; //todo:check this, suppost to be 15
+  int deg = int(degrees)*41; 
   
   delayMicroseconds(2);
   digitalWrite(m1DirPin, direction);
@@ -147,6 +148,7 @@ void turn(int direction, byte degrees)
     if (Serial.read() == STOP)
     {
       trip = true;
+      recenter();
       break;
     }
     digitalWrite(m1StepPin,LOW);
@@ -177,56 +179,4 @@ void takePhoto()
   cam.resumeVideo();
 }
 */
-
-void randomize() 
-{
-  int choice = random(1,4);
-  byte distance = random(1,6);
-  digitalWrite(sleepLeftPin, HIGH);
-  digitalWrite(sleepRightPin, HIGH);
-  if (choice == 1)
-  {
-    for (int i = 1; i <= distance; i++)
-    {
-      drive(HIGH, 1);
-      if (Serial.read() == STOP)
-      {
-        recenter();
-      }
-    }
-  }
-  else if (choice == 2)
-  {
-    for (int i = 1; i <= distance*2; i++)
-    {
-      turn(HIGH, 1);
-      if (Serial.read() == STOP)
-      {
-        recenter();
-      }
-    }
-  }
-  else if (choice == 3)
-  {
-    for (int i = 1; i <= distance*2; i++)
-    {
-      turn(LOW, 1);
-      if (Serial.read() == STOP)
-      {
-        recenter();
-      }
-    }
-  }
-}
-void recenter()
-{
-  while (1);
-  Serial.write(STOP_EXECUTED);
-  byte deg = Serial.read();
-  turn(LEFT, deg);
-  Serial.write(STOP_EXECUTED);
-  byte distance = Serial.read();
-  drive(FORWARD, distance);
-  Serial.write(STOP_EXECUTED);
-}
   

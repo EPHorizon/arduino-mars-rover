@@ -3,11 +3,11 @@ import time
 import math
 import serial
 
-port = serial.Serial("COM12", 57600)
+#port = serial.Serial("COM12", 57600)
 
 def firstImage():
-    while True:
-        
+    
+    while True:   
         try:
             img = Image.open(r"C:\Users\Robert Davis\Documents\GitHub\arduino-mars-rover\current.jpg")
             pixels = img.load()
@@ -15,17 +15,13 @@ def firstImage():
         except:
             pass
         
-    
-
     redRatio = 0
     maxRed = 0
     redLoc = [0,0]
     blueRatio = 0
     maxBlue = 0
     blueLoc = [0,0]
-    greenRatio = 0
-    maxGreen = 0
-    greenLoc = [0,0]
+
     for x in range(1600):
         for y in range(1200):
             dot = pixels[x,y]
@@ -38,19 +34,13 @@ def firstImage():
                 if blueRatio > maxBlue:
                     maxBlue = blueRatio
                     blueLoc = [x,y]
-                greenRatio = dot[1]/(dot[0]+dot[2]+1)
-                if greenRatio > maxGreen:
-                    maxGreen = greenRatio
-                    greenLoc = [x,y]
-    
+
     global center
     center = [int((blueLoc[0] + redLoc[0])/2), int((blueLoc[1] + redLoc[1])/2)]
     return center
 
-
-
-
 def getCenter(ct):
+    
     while True:
         try:
             img = Image.open(r"C:\Users\Robert Davis\Documents\GitHub\arduino-mars-rover\current.jpg")
@@ -59,17 +49,13 @@ def getCenter(ct):
         except:
             pass
     
-    
     redRatio = 0
     maxRed = 0
     redLoc = [0,0]
     blueRatio = 0
     maxBlue = 0
     blueLoc = [0,0]
-    greenRatio = 0
-    maxGreen = 0
-    greenLoc = [0,0]
-    
+
     for x in range(ct[0]-125, ct[0]+125):
         for y in range(ct[1]-125, ct[1]+125):
             dot = pixels[x,y]
@@ -82,74 +68,103 @@ def getCenter(ct):
                 if blueRatio > maxBlue:
                     maxBlue = blueRatio
                     blueLoc = [x,y]
-                greenRatio = dot[1]/(dot[0]+dot[2]+1)
-                if greenRatio > maxGreen:
-                    maxGreen = greenRatio
-                    greenLoc = [x,y]
+
     global center
     center = [int((blueLoc[0] + redLoc[0])/2), int((blueLoc[1] + redLoc[1])/2)]
-    
-    boundary = Image.open(r"C:\Users\Robert Davis\Documents\GitHub\arduino-mars-rover\boundary.png")
-    bound = boundary.load() #todo: draw actual boundary case
-    if bound[center[0], center[1]] == (255, 255, 255, 255):
-        print("Out of Bounds!")
-        port.write(b"\x36")
-        while port.read() != b"\x52":
-            pass
-        print("input 1 received")
-        for i in range(4):
-            data = direction([800, 600], getYellow(firstImage()))
-            direction0 = data[0]
-            port.write(direction0.to_bytes(1, "big"))
-            while port.read() != b"\x52":
-                pass
-            deg = int(data[1] * (180/math.pi))
-            print(deg)
-            port.write(deg.to_bytes(1, "big"))
-            while port.read() != b"\x52":
-                pass
 
-        
-        print("input 2 received")
-        dist = int(math.sqrt(math.pow((center[0] - 800), 2) + math.pow((center[1] - 600), 2)) / 5)
-        print(dist)
-        print(dist.to_bytes(1, "big"))
-        #todo: need to find what the conversion from pixels to inches is
-        port.write(dist.to_bytes(1, "big"))
-        while port.read() != b"\x52":
-            pass
-        print("input 3 received")
-        #todo: maybe send this command to another function call
-        firstImage()
-
+    if center != [0,0]:
+        boundCheck(center)
         
     return center
 
 def direction(initial, final):
     angle = [0,0]
-    x = final[0] - initial[0]
-    y = -1*(final[1] - initial[1]) #negative is because the orgin starts upper
-    angle[1] = math.atan2(y, x)       #lefthand corner, with y downwards
-    
-    if angle[1] >= 0:
-        angle[0] = 1
-        print(angle)
-        return angle
-    else:
-        angle[0] = 0
-        angle[1] = abs(angle[1])
-        print(angle)
-        return angle    #This output depends on what they want
+    x = initial[0] - final[0]
+    y = (initial[1]- final[1])
+    angle = math.degrees(math.atan2(x,y))
+    return angle
 
-    if angle <= math.pi/4 or angle >= 7*math.pi/4:
-        return "E"
-    if angle <= 3*math.pi/4 and angle >= math.pi/4:
-        return "N"
-    if angle <= 5*math.pi/4 and angle >= 3*math.pi/4:
-        return "W"
-    if angle <= 7*math.pi/4 and angle >= 5*math.pi/4:
-        return "S"
-def getYellow(ct):  #todo: once a green led is added, change to that
+def boundCheck(ct):
+    
+    boundary = Image.open(r"C:\Users\Robert Davis\Documents\GitHub\arduino-mars-rover\boundary.png")
+    bound = boundary.load() #todo: draw actual boundary case
+    if bound[ct[0], ct[1]] == (255, 255, 255, 255):
+        print("Out of Bounds!")
+        port.write(b"\x36")
+        time1 = time.Time()
+        while port.read() != b"\x52":
+            time2 = time.Time()
+            if time2 - time1 > 10:
+                print("No feedback received; reattempting connection")
+                return
+        print("Rover sucessfully stoped")
+        print("Calculating angle 1")
+        theta1 = direction(firstImage(), [800,600])
+        print(theta1)
+        theta2 = direction(firstImage(), getYellow(firstImage()))
+        print(theta2)
+        theta_1st = int(theta1 - theta2)
+        print(theta_1st)
+        print("Calculating angle 2")
+        theta3 = direction(firstImage(), [800,600])
+        print(theta3)
+        theta4 = direction(firstImage(), getYellow(firstImage()))
+        print(theta4)
+        theta_2nd = int(theta3 - theta4)
+        print(theta_2nd)
+        theta = int((theta_1st + theta_2nd) / 2)
+        
+        if theta < -180:
+            theta = theta + 360
+        elif theta > 180:
+            theta = theta - 360
+
+        if theta < 0:
+            port.write(b"\x01")
+            time1 = time.Time()
+            while port.read() != b"\x52":
+                time2 = time.Time()
+                if time2 - time1 > 60:
+                    print("No feedback received; reattempting connection")
+                    return
+        else:
+            port.write(b"\x00")
+            time1 = time.Time()
+            while port.read() != b"\x52":
+                time2 = time.Time()
+                if time2 - time1 > 60:
+                    print("No feedback received; reattempting connection")
+                    return
+        
+        theta = abs(theta)
+        print(theta)
+
+        port.write(theta.to_bytes(1, "big"))
+        time1 = time.Time()    
+        while port.read() != b"\x52":
+            time2 = time.Time()
+            if time2 - time1 > 60:
+                print("No feedback received; reattempting connection")
+                return
+            
+        print("Turn executed")
+        firstImage()
+        dist = int(math.sqrt(math.pow((ct[0] - 800), 2) + math.pow((ct[1] - 600), 2)) / 5)
+        print(dist)
+        print(dist.to_bytes(1, "big"))
+        port.write(dist.to_bytes(1, "big"))
+        time1 = time.Time()
+        while port.read() != b"\x52":
+            time2 = time.Time()
+            if time2 - time1 > 60:
+                print("No feedback received; reattempting connection")
+                return
+        print("Resuming normal operations")
+        
+        firstImage()
+
+def getYellow(ct):
+    
     while True:
         try:
             img = Image.open(r"C:\Users\Robert Davis\Documents\GitHub\arduino-mars-rover\current.jpg")
@@ -171,23 +186,18 @@ def getYellow(ct):  #todo: once a green led is added, change to that
                     maxYellow = yellowRatio
                     yellowLoc = [x,y]
     return yellowLoc
-
-##for i in range(19):
-##    start = time.time()
-##    getCenter(center, i+2)
-
-##start1 = getCenter(center, 8)
-##end = getCenter(center, 9)
-##print(direction(start1, getYellow(center, 8)))
-##print(getYellow(center, 8))
-
+                     
 def main():
-    while firstImage() == 0:
-        pass
+    
+    while firstImage()[0] + firstImage()[1] < 100:
+        print("Rover not found!")    
     while True:
-        if getCenter(center) == 0:
-            print("Error reading image file")
+        if getCenter(center) == [0,0]:
+            print("Rover Lost!")
+            while firstImage() == [0,0]:
+                pass
+            print("Rover Found!")
         print(center)
-main()
 
+main()
 
