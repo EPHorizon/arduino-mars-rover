@@ -112,9 +112,7 @@ void readCommand()
 }
 void drive(int direction, byte distance)
 {
-  //Serial.println(distance);
   int dist = int(distance)*203;
-  //Serial.println(dist);
   
   delayMicroseconds(2);
   digitalWrite(m1DirPin, direction);
@@ -124,7 +122,6 @@ void drive(int direction, byte distance)
     if (Serial.read() == STOP)
     {
       trip = true;
-      Serial.write(ACKNOWLEDGED);
       break;
     }
     digitalWrite(m1StepPin,LOW);
@@ -148,7 +145,6 @@ void turn(int direction, byte degrees)
     if (Serial.read() == STOP)
     {
       trip = true;
-      recenter();
       break;
     }
     digitalWrite(m1StepPin,LOW);
